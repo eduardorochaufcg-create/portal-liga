@@ -42,6 +42,11 @@ table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;colo
 .modal{position:fixed;inset:0;background:rgba(0,10,30,.7);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
 .box{background:#0A2A5E;color:#EAF3FF;border:1px solid var(--bd);border-radius:16px;padding:18px;width:100%;max-width:420px;max-height:90vh;overflow:auto}
 .box label{display:block;font-size:12px;color:var(--mut)}
+textarea{width:100%;padding:12px;border-radius:10px;border:1px solid var(--bd);background:rgba(255,255,255,.08);color:var(--txt);font:15px Inter,Arial;margin:6px 0 10px;resize:vertical}
+textarea:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+.parecer{border-left:4px solid var(--pri);padding:6px 0 6px 12px;margin:14px 0}.parecer p{white-space:pre-wrap;margin:4px 0 8px;line-height:1.45}
+.parecer .rot{font-size:12px;color:var(--mut);margin-top:6px}
+button.mini{padding:6px 12px;font-size:13px}
 /* ===== MEMBRO: simples, claro ===== */
 body.t-membro{--bg:#F3F8FF;--card:#fff;--bd:#D6E4F7;--txt:#0B2447;--mut:#5B6B88;--pri:#0070D8}
 .t-membro .top{background:var(--b1);color:#fff}.t-membro .top button{background:#fff;color:var(--b1)}
@@ -211,7 +216,7 @@ function desenhar() {
   var tema = D.papel === 'gestao' ? (D.dono ? 't-gestor' : 't-dir') : (D.papel === '2fa' ? 't-dir' : 't-membro');
   document.body.className = tema;
   var tc = document.querySelector('meta[name=theme-color]'); tc.content = tema === 't-membro' ? '#0070D8' : '#021A44';
-  $('tNome').textContent = D.papel === 'gestao' ? (D.dono ? 'Gestor' : 'Diretoria · ' + D.nome) : 'Olá, ' + D.nome;
+  $('tNome').textContent = D.papel === 'gestao' ? (D.dono ? 'Gestor' : (D.superG ? 'Diretoria Geral · ' : 'Diretoria · ') + D.nome) : 'Olá, ' + D.nome;
   $('tSub').textContent = D.papel === '2fa' ? 'Verificação' : 'Atualizado ' + D.atualizado;
   if (D.papel === '2fa') return tela2fa();
   if (D.papel === 'gestao') telaGestao(); else telaMembro();
@@ -243,11 +248,12 @@ function telaGestao() {
       '<div class="kpi"><small>Pontos (média)</small><b>' + k.mediaPontos + '</b></div><div class="kpi"><small>Em risco</small><b>' + k.risco + '</b></div>' +
       '<div class="kpi"><small>Afastados</small><b>' + k.afastados + '</b></div><div class="kpi"><small>Reuniões · mês ' + D.mes + '</small><b>' + D.reunioes + '</b></div></div>';
   }
-  h += '<div class="tabs">' + [['geral', 'Visão geral'], ['pessoas', 'Integrantes'], ['afast', 'Afastados']].map(function (t) {
+  h += '<div class="tabs">' + [['geral', 'Visão geral'], ['pessoas', 'Integrantes'], ['pareceres', 'Pareceres'], ['afast', 'Afastados']].map(function (t) {
     return '<button class="' + (aba === t[0] ? 'on' : '') + '" onclick="aba=\'' + t[0] + '\';telaGestao()">' + t[1] + '</button>'; }).join('') + '</div>';
-  h += aba === 'geral' ? abaGeral() : aba === 'pessoas' ? abaPessoas() : abaAfast();
+  h += aba === 'geral' ? abaGeral() : aba === 'pessoas' ? abaPessoas() : aba === 'pareceres' ? abaPareceres() : abaAfast();
   $('conteudo').innerHTML = h;
   if (aba === 'pessoas') filtrar();
+  if (aba === 'pareceres') pintarPareceres();
 }
 function abaGeral() {
   var h = '', t = D.top3 || [], g = D.dono;
@@ -279,15 +285,61 @@ function abaPessoas() {
 function filtrar() {
   var b = ($('fBusca').value || '').toLowerCase(), d = $('fDep').value, s = $('fSt').value;
   $('tb').innerHTML = D.membros.filter(function (m) { return (!b || (m.nome + ' ' + m.email).toLowerCase().indexOf(b) !== -1) && (!d || m.depto === d) && (!s || (m.status === s && !m.afastado)); }).map(function (m) {
-    var i = D.membros.indexOf(m), pode = D.dono || m.cargo !== 'Diretoria';
+    var i = D.membros.indexOf(m), pode = D.dono || (m.cargo !== 'Diretoria' && m.depto !== 'Diretoria Geral'), podeP = D.alvosParecer.indexOf(m.k) !== -1;
     return '<tr><td><b>' + esc(m.nome) + '</b></td><td>' + esc(m.depto || '—') + '</td><td>' + esc(m.cargo) + '</td><td><b>' + m.pontos + '</b></td><td>' + (m.afastado ? '<span class="pill ATENÇÃO">Afastado</span>' : pill(m.status)) +
-      '</td><td>' + pct(m.freq) + '</td><td>' + m.faltas + '</td><td>' + esc(m.situacao || '—') + '</td><td class="mut">' + esc(m.email) + '<br>' + esc(m.telefone) + '</td><td>' + (pode ? '<button class="sec" onclick="abrirEdicao(' + i + ')">Editar</button>' : '🔒') + '</td></tr>'; }).join('') || '<tr><td colspan="10" class="mut">Nada encontrado.</td></tr>';
+      '</td><td>' + pct(m.freq) + '</td><td>' + m.faltas + '</td><td>' + esc(m.situacao || '—') + '</td><td class="mut">' + esc(m.email) + '<br>' + esc(m.telefone) + '</td><td>' + (pode ? '<button class="sec mini" onclick="abrirEdicao(' + i + ')">Editar</button> ' : '🔒 ') + (podeP ? '<button class="sec mini" onclick="abrirParecer(' + i + ')">Parecer</button>' : '') + '</td></tr>'; }).join('') || '<tr><td colspan="10" class="mut">Nada encontrado.</td></tr>';
 }
 function abaAfast() {
   if (!D.afastados.length) return '<div class="card mut">Ninguém está afastado no momento.</div>';
   return '<div class="card scroll"><table><thead><tr><th>Integrante</th><th>Desde</th><th>Até</th><th>Prazo</th><th>Volta para</th><th>Contato</th></tr></thead><tbody>' + D.afastados.map(function (a) {
     var p = a.dias === null ? '—' : (a.dias >= 0 ? 'faltam ' + a.dias + ' dia(s)' : '<span class="pill URGENTE">vencido há ' + (-a.dias) + ' dia(s)</span>');
     return '<tr><td><b>' + esc(a.nome) + '</b></td><td>' + esc(a.ini || '—') + '</td><td>' + esc(a.fim || '—') + '</td><td>' + p + '</td><td>' + esc(a.origem || '—') + '</td><td class="mut">' + esc(a.email) + '<br>' + esc(a.telefone) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+}
+
+/* ---------- pareceres dos diretores ---------- */
+var pcSel = '';
+function abrirParecer(i) { pcSel = D.membros[i].k; aba = 'pareceres'; telaGestao(); }
+function uniq(a) { return a.filter(function (x, i) { return a.indexOf(x) === i; }); }
+function abaPareceres() {
+  var alvos = D.membros.filter(function (m) { return D.alvosParecer.indexOf(m.k) !== -1; });
+  var h = '<div class="card"><b class="hf">Novo parecer</b>';
+  if (!alvos.length) {
+    h += '<p class="mut">Não há integrantes sobre quem você possa registrar parecer.</p>';
+  } else {
+    h += '<p class="mut">' + (D.verTudo ? 'Você pode opinar sobre qualquer integrante.' : 'Você pode opinar sobre os integrantes do seu departamento' + (D.deptoDiretor ? ' (' + esc(D.deptoDiretor) + ')' : '') + '.') +
+      ' Só a diretoria vê estes pareceres.</p>' +
+      '<label class="mut">Integrante</label><select id="pMembro">' + alvos.map(function (m) {
+        return '<option value="' + esc(m.k) + '"' + (m.k === pcSel ? ' selected' : '') + '>' + esc(m.nome) + (m.depto ? ' · ' + esc(m.depto) : '') + '</option>'; }).join('') + '</select>' +
+      '<label class="mut">Observações sobre o desempenho</label><textarea id="pObs" rows="4" maxlength="1500" placeholder="Pontos fortes, entregas, atitude…"></textarea>' +
+      '<label class="mut">Possíveis melhorias</label><textarea id="pMel" rows="4" maxlength="1500" placeholder="O que pode melhorar e como…"></textarea>' +
+      '<button id="pSalvar" onclick="salvarParecer()">Salvar parecer</button><div id="pMsg" class="msg"></div>';
+  }
+  h += '</div><div class="card"><b class="hf">Pareceres registrados (' + D.pareceres.length + ')</b>' +
+    '<div class="filtros" style="margin-top:10px"><select id="pFiltro" onchange="pintarPareceres()"><option value="">Todos os integrantes</option>' +
+    uniq(D.pareceres.map(function (p) { return p.k + '|' + p.membro; })).map(function (x) { var a = x.split('|'); return '<option value="' + esc(a[0]) + '">' + esc(a[1]) + '</option>'; }).join('') +
+    '</select></div><div id="pLista"></div></div>';
+  return h;
+}
+function pintarPareceres() {
+  var f = $('pFiltro') ? $('pFiltro').value : '';
+  var l = D.pareceres.filter(function (p) { return !f || p.k === f; });
+  $('pLista').innerHTML = l.map(function (p) {
+    return '<div class="parecer"><b>' + esc(p.membro) + '</b> <span class="mut">· ' + esc(p.depto || '—') + '</span>' +
+      '<div class="mut">' + esc(p.data) + ' · por ' + esc(p.autor) + '</div>' +
+      (p.obs ? '<div class="rot">Observações</div><p>' + esc(p.obs) + '</p>' : '') +
+      (p.mel ? '<div class="rot">Possíveis melhorias</div><p>' + esc(p.mel) + '</p>' : '') +
+      (p.meu ? '<button class="sec mini" onclick="excluirParecer(\'' + esc(p.id) + '\')">Apagar</button>' : '') + '</div>'; }).join('') || '<p class="mut">Nenhum parecer ainda.</p>';
+}
+function salvarParecer() {
+  var k = $('pMembro').value;
+  $('pSalvar').disabled = true; $('pMsg').textContent = 'Salvando…';
+  api('salvarParecer', {token: T, chave: k, obs: $('pObs').value, mel: $('pMel').value})
+    .then(function () { pcSel = k; carregar(true); })
+    .catch(function (e) { $('pMsg').textContent = e.message; $('pSalvar').disabled = false; });
+}
+function excluirParecer(id) {
+  if (!confirm('Apagar este parecer?')) return;
+  api('excluirParecer', {token: T, id: id}).then(function () { carregar(true); }).catch(function (e) { alert(e.message); });
 }
 
 /* ---------- edição ---------- */
