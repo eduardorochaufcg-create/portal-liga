@@ -2,6 +2,7 @@
   "name": "Equantis · Portal da Liga",
   "short_name": "Equantis",
   "description": "Portal dos integrantes da Liga Acadêmica de Engenharia - UFCG",
+  "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -9,8 +10,8 @@
   "background_color": "#021A44",
   "theme_color": "#021A44",
   "icons": [
-    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
     {"src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ]
 }
