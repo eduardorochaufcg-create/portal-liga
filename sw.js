@@ -1,4 +1,4 @@
-var V = 'equantis-v5';   // mude o número para forçar a atualização em todos os aparelhos
+var V = 'equantis-v6';   // mude o número para forçar a atualização em todos os aparelhos
 var ARQ = ['./', 'index.html', 'simbolo.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'manifest.json'];
 self.addEventListener('install', function (e) { e.waitUntil(caches.open(V).then(function (c) { return c.addAll(ARQ); })); self.skipWaiting(); });
 self.addEventListener('activate', function (e) {
