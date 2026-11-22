@@ -239,7 +239,10 @@ function telaMembro() {
 
 /* ---------- DIRETORIA e GESTOR ---------- */
 function telaGestao() {
+  var antigo = !D.alvosParecer;   // servidor (Apps Script) ainda sem a versão nova
+  if (antigo) { D.alvosParecer = []; D.pareceres = []; }
   var k = D.kpis, g = D.dono, h = grupo();
+  if (antigo) h += '<div class="aviso"><b>Servidor desatualizado.</b> Publique uma <b>Nova versão</b> da implantação no Apps Script (arquivos Portal e Pareceres) para liberar os pareceres.</div>';
   var risco = k.ativos ? k.risco / k.ativos * 100 : 0;
   if (g) {
     h += '<div class="card"><div class="rings">' + ring(k.mediaPontos, 'pontos (média)', '#7DD3FC') + ring(k.mediaFreq * 100, 'frequência %', '#4DB3FF') + ring(100 - risco, 'fora de risco %', '#0E84E0') + ring(k.ativos / Math.max(k.total, 1) * 100, 'ativos %', '#2F5DA8') + '</div></div>';
